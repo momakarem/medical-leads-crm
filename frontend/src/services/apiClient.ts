@@ -1,4 +1,4 @@
-﻿function resolveApiBaseUrl(): string {
+function resolveApiBaseUrl(): string {
   const configuredUrl = import.meta.env.VITE_API_BASE_URL;
 
   if (typeof window === 'undefined') {
@@ -12,7 +12,7 @@
     return `${window.location.protocol}//${currentHost}:3000`;
   }
 
-  return configuredUrl ?? 'http://localhost:3000';
+  return '/api';
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
@@ -63,4 +63,3 @@ export function buildQueryString(params: Record<string, string | number | boolea
   });
   return query.toString();
 }
-

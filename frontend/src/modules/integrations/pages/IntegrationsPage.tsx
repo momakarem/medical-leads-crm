@@ -40,7 +40,7 @@ function apiBaseUrl(): string {
   const host = window.location.hostname || '127.0.0.1';
   const protocol = window.location.protocol || 'http:';
   if (host === 'localhost' || host === '127.0.0.1') return `${protocol}//${host}:3000`;
-  return import.meta.env.VITE_API_BASE_URL ?? `${protocol}//${host}:3000`;
+  return `${window.location.origin}/api`;
 }
 
 function connectionDetails(

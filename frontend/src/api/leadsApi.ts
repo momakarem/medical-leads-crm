@@ -62,7 +62,7 @@ function resolveApiBaseUrl(): string {
     return `${window.location.protocol}//${currentHost}:3000`;
   }
 
-  return configuredUrl ?? 'http://localhost:3000';
+  return '/api';
 }
 
 const API_BASE_URL = resolveApiBaseUrl();
@@ -487,7 +487,3 @@ export function updateDistributionRule(id: string, payload: SaveDistributionRule
 export function deleteDistributionRule(id: string): Promise<{ success: true }> {
   return deleteJson<{ success: true }>(`/settings/assignment-method/distribution-rules/${id}`);
 }
-
-
-
-
