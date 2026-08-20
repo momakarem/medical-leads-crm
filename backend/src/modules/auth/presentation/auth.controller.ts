@@ -1,4 +1,4 @@
-﻿import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { CookieOptions, Response } from 'express';
 import type { AuthenticatedUser } from '../../../common/types/authenticated-user.type';
@@ -43,10 +43,12 @@ export class AuthController {
   }
 
   private get baseCookieOptions(): CookieOptions {
+    const secure = this.config.getOrThrow<boolean>('cookieSecure');
+
     return {
       httpOnly: true,
-      sameSite: 'strict',
-      secure: this.config.getOrThrow<boolean>('cookieSecure'),
+      sameSite: secure ? 'none' : 'lax',
+      secure,
       path: '/',
     };
   }
