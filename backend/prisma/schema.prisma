@@ -1,0 +1,593 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  manager
+  agent
+  marketing
+
+  @@map("user_role")
+}
+
+enum LeadStatus {
+  new
+  no_answer
+  follow_up
+  interested
+  not_interested
+  wrong_number
+  job_seeker
+  booked
+  showed_up
+  no_show
+  paid
+
+  @@map("lead_status")
+}
+
+enum ActivityType {
+  lead_created
+  lead_updated
+  lead_deleted
+  status_changed
+  note_added
+  lead_viewed
+  lead_restored
+  follow_up_created
+  follow_up_completed
+  follow_up_cancelled
+  lead_assigned
+  lead_reassigned
+  lead_unassigned
+  lead_transferred
+  lead_auto_assigned
+  agent_capacity_reached
+  agent_capacity_updated
+  lead_unassigned_no_capacity
+  lead_created_via_webhook
+  lead_created_via_meta
+  lead_created_via_tiktok
+  lead_created_via_snapchat
+  duplicate_detected
+  first_contact_recorded
+  leads_exported
+  call_started
+  call_ended
+
+  @@map("activity_type")
+}
+
+enum AssignmentMethod {
+  manual
+  round_robin
+  treatment_based
+
+  @@map("assignment_method")
+}
+
+enum FollowUpStatus {
+  pending
+  completed
+  cancelled
+
+  @@map("follow_up_status")
+}
+
+model User {
+  customRoleId        String?                @map("custom_role_id") @db.Uuid
+  id                  String                 @id @default(uuid()) @db.Uuid
+  name                String                 @db.VarChar(150)
+  email               String                 @unique @db.VarChar(320)
+  password            String                 @db.VarChar(255)
+  role                UserRole
+  isActive            Boolean                @default(true) @map("is_active")
+  maxActiveLeads      Int                    @default(50) @map("max_active_leads")
+  preferredLanguage   String                 @default("en") @map("preferred_language") @db.VarChar(5)
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt           DateTime?              @map("deleted_at") @db.Timestamptz(3)
+  ownedLeads          Lead[]                 @relation("LeadOwner")
+  createdLeads        Lead[]                 @relation("LeadCreator")
+  activities          Activity[]
+  statusChanges       LeadStatusHistory[]
+  followUps           FollowUp[]
+  assignmentsMade     LeadAssignment[]       @relation("AssignedBy")
+  previousAssignments LeadAssignment[]       @relation("PreviousAgent")
+  newAssignments      LeadAssignment[]       @relation("NewAgent")
+  previousTransfers   LeadTransfer[]         @relation("PreviousTransferAgent")
+  newTransfers        LeadTransfer[]         @relation("NewTransferAgent")
+  transfersMade       LeadTransfer[]         @relation("TransferredBy")
+  securityLogs        SecurityLog[]
+  capacityEvents      AgentCapacityHistory[] @relation("CapacityAgent")
+  capacityChanges     AgentCapacityHistory[] @relation("CapacityChangedBy")
+  treatmentRoutings   TreatmentAgentRouting[]
+  distributionAllocations AssignmentDistributionAllocation[]
+  distributionRulesCreated AssignmentDistributionRule[] @relation("DistributionRuleCreator")
+  activeCallSessions LeadCallSession[]
+  facebookConnections FacebookConnection[]
+  tiktokConnections   TiktokConnection[]
+  snapchatConnections SnapchatConnection[]
+  duplicateDetections LeadDuplicate[]        @relation("DuplicateDetectedBy")
+  customRole          CustomRole?            @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+
+  @@index([maxActiveLeads])
+  @@index([customRoleId])
+  @@index([preferredLanguage])
+  @@index([role, isActive, maxActiveLeads])
+  @@map("users")
+}
+
+model CustomRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(120)
+  description String?  @db.Text
+  baseRole    UserRole @map("base_role")
+  permissions Json
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  users       User[]
+
+  @@index([baseRole])
+  @@index([isSystem])
+  @@map("custom_roles")
+}
+
+model FacebookConnection {
+  id             String    @id @default(uuid()) @db.Uuid
+  pageId         String    @map("page_id") @db.VarChar(80)
+  pageName       String    @map("page_name") @db.VarChar(255)
+  formId         String    @map("form_id") @db.VarChar(80)
+  formName       String    @map("form_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at") @db.Timestamptz(3)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  creator        User      @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([pageId])
+  @@index([formId])
+  @@index([pageId, formId])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("facebook_connections")
+}
+
+model TiktokConnection {
+  id             String    @id @default(uuid()) @db.Uuid
+  advertiserId   String    @map("advertiser_id") @db.VarChar(80)
+  advertiserName String    @map("advertiser_name") @db.VarChar(255)
+  formId         String    @map("form_id") @db.VarChar(80)
+  formName       String    @map("form_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String    @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at") @db.Timestamptz(3)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  creator        User      @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([advertiserId])
+  @@index([formId])
+  @@index([advertiserId, formId])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("tiktok_connections")
+}
+
+model SnapchatConnection {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String?   @map("organization_id") @db.VarChar(80)
+  adAccountId    String    @map("ad_account_id") @db.VarChar(80)
+  adAccountName  String    @map("ad_account_name") @db.VarChar(255)
+  formId         String    @map("form_id") @db.VarChar(80)
+  formName       String    @map("form_name") @db.VarChar(255)
+  accessToken    String    @map("access_token") @db.Text
+  refreshToken   String    @map("refresh_token") @db.Text
+  tokenExpiresAt DateTime? @map("token_expires_at") @db.Timestamptz(3)
+  isActive       Boolean   @default(true) @map("is_active")
+  createdBy      String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  creator        User      @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+  @@index([adAccountId])
+  @@index([formId])
+  @@index([adAccountId, formId])
+  @@index([isActive])
+  @@index([createdBy])
+  @@map("snapchat_connections")
+}
+
+model Treatment {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(150)
+  nameAr      String?  @map("name_ar") @db.VarChar(150)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  leads       Lead[]
+  agentRoutings TreatmentAgentRouting[]
+
+  @@index([name])
+  @@index([nameAr])
+  @@index([isActive])
+  @@map("treatments")
+}
+
+
+model TreatmentAgentRouting {
+  id          String    @id @default(uuid()) @db.Uuid
+  treatmentId String   @map("treatment_id") @db.Uuid
+  agentId     String   @map("agent_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  treatment Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  agent     User      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([treatmentId, agentId])
+  @@index([treatmentId])
+  @@index([agentId])
+  @@map("treatment_agent_routing")
+}
+
+model AssignmentDistributionRule {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @db.VarChar(150)
+  isActive      Boolean  @default(true) @map("is_active")
+  priority      Int      @default(100)
+  sourceChannel String?  @map("source_channel") @db.VarChar(100)
+  campaignName  String?  @map("campaign_name") @db.VarChar(200)
+  adName        String?  @map("ad_name") @db.VarChar(200)
+  formId        String?  @map("form_id") @db.VarChar(120)
+  createdBy     String?  @map("created_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  creator       User?    @relation("DistributionRuleCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  allocations   AssignmentDistributionAllocation[]
+
+  @@index([isActive, priority])
+  @@index([sourceChannel])
+  @@index([campaignName])
+  @@index([adName])
+  @@index([formId])
+  @@map("assignment_distribution_rules")
+}
+
+model AssignmentDistributionAllocation {
+  id            String   @id @default(uuid()) @db.Uuid
+  ruleId        String   @map("rule_id") @db.Uuid
+  agentId       String   @map("agent_id") @db.Uuid
+  weight        Int      @default(1)
+  assignedCount Int      @default(0) @map("assigned_count")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  rule          AssignmentDistributionRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  agent         User                       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, agentId])
+  @@index([ruleId])
+  @@index([agentId])
+  @@index([weight])
+  @@index([assignedCount])
+  @@map("assignment_distribution_allocations")
+}
+
+model LeadCallSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  leadId    String    @map("lead_id") @db.Uuid
+  agentId   String    @map("agent_id") @db.Uuid
+  startedAt DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(3)
+  note      String?   @db.Text
+
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent     User      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([agentId])
+  @@index([endedAt])
+  @@index([startedAt])
+  @@index([leadId, endedAt])
+  @@index([agentId, endedAt])
+  @@map("lead_call_sessions")
+}
+
+model Lead {
+  id                          String              @id @default(uuid()) @db.Uuid
+  name                        String              @db.VarChar(150)
+  phone                       String              @db.VarChar(25)
+  normalizedPhone             String?             @map("normalized_phone") @db.VarChar(25)
+  isDuplicate                 Boolean             @default(false) @map("is_duplicate")
+  duplicateOfLeadId           String?             @map("duplicate_of_lead_id") @db.Uuid
+  sourceChannel               String              @map("source_channel") @db.VarChar(100)
+  campaignName                String?             @map("campaign_name") @db.VarChar(200)
+  adName                      String?             @map("ad_name") @db.VarChar(200)
+  arrivalTimestamp            DateTime            @default(now()) @map("arrival_timestamp")
+  appointmentAt               DateTime?           @map("appointment_at")
+  appointmentTreatmentId      String?             @map("appointment_treatment_id") @db.Uuid
+  appointmentNote             String?             @map("appointment_note") @db.Text
+  treatmentId                 String?             @map("treatment_id") @db.Uuid
+  status                      LeadStatus          @default(new)
+  ownerAgentId                String?             @map("owner_agent_id") @db.Uuid
+  isPrivate                   Boolean             @default(false) @map("is_private")
+  createdBy                   String              @map("created_by") @db.Uuid
+  deletedAt           DateTime?           @map("deleted_at") @db.Timestamptz(3)
+  firstContactedAt            DateTime?           @map("first_contacted_at") @db.Timestamptz(3)
+  speedToContactSeconds       Int?                @map("speed_to_contact_seconds")
+  firstActionAt               DateTime?           @map("first_action_at") @db.Timestamptz(3)
+  speedToFirstActionSeconds   Int?                @map("speed_to_first_action_seconds")
+  createdAt                   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  treatment                   Treatment?          @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
+  ownerAgent                  User?               @relation("LeadOwner", fields: [ownerAgentId], references: [id], onDelete: SetNull)
+  creator                     User                @relation("LeadCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  duplicateOfLead             Lead?               @relation("LeadDuplicates", fields: [duplicateOfLeadId], references: [id], onDelete: SetNull)
+  duplicateLeads              Lead[]              @relation("LeadDuplicates")
+  duplicateHistoryAsOriginal  LeadDuplicate[]     @relation("OriginalLeadDuplicateHistory")
+  duplicateHistoryAsDuplicate LeadDuplicate[]     @relation("DuplicateLeadHistory")
+  activities                  Activity[]
+  statusHistory               LeadStatusHistory[]
+  followUps                   FollowUp[]
+  assignments                 LeadAssignment[]
+  transfers                   LeadTransfer[]
+  callSessions                LeadCallSession[]
+  securityLogs                SecurityLog[]
+
+  @@index([phone])
+  @@index([normalizedPhone])
+  @@index([normalizedPhone, createdAt])
+  @@index([isDuplicate])
+  @@index([duplicateOfLeadId])
+  @@index([name])
+  @@index([status])
+  @@index([treatmentId])
+  @@index([ownerAgentId])
+  @@index([isPrivate])
+  @@index([ownerAgentId, status])
+  @@index([ownerAgentId, createdAt])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([sourceChannel])
+  @@index([deletedAt, createdAt])
+  @@index([status, createdAt])
+  @@index([treatmentId, createdAt])
+  @@index([sourceChannel, createdAt])
+  @@index([deletedAt])
+  @@index([firstContactedAt])
+  @@index([speedToContactSeconds])
+  @@index([firstActionAt])
+  @@index([speedToFirstActionSeconds])
+  @@index([ownerAgentId, firstActionAt])
+  @@index([ownerAgentId, speedToFirstActionSeconds])
+  @@index([ownerAgentId, firstContactedAt])
+  @@index([ownerAgentId, speedToContactSeconds])
+  @@map("leads")
+}
+
+model Activity {
+  id          String       @id @default(uuid()) @db.Uuid
+  leadId      String       @map("lead_id") @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  type        ActivityType
+  title       String       @db.VarChar(150)
+  description String       @db.Text
+  note        String?      @db.Text
+  outcome     String?      @db.VarChar(120)
+  newStatus   LeadStatus?  @map("new_status")
+  scheduledFor DateTime?   @map("scheduled_for") @db.Timestamptz(3)
+  metadata    Json?
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([type])
+  @@index([outcome])
+  @@index([newStatus])
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@index([leadId, createdAt])
+  @@map("activities")
+}
+
+model LeadStatusHistory {
+  id        String     @id @default(uuid()) @db.Uuid
+  leadId    String     @map("lead_id") @db.Uuid
+  oldStatus LeadStatus @map("old_status")
+  newStatus LeadStatus @map("new_status")
+  changedBy String     @map("changed_by") @db.Uuid
+  note      String?    @db.Text
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  lead      Lead       @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [changedBy], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+  @@index([changedBy])
+  @@index([createdAt])
+  @@map("lead_status_history")
+}
+
+model FollowUp {
+  id            String         @id @default(uuid()) @db.Uuid
+  leadId        String         @map("lead_id") @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  scheduledDate DateTime       @map("scheduled_date") @db.Date
+  scheduledTime String         @map("scheduled_time") @db.VarChar(5)
+  scheduledAt   DateTime       @map("scheduled_at") @db.Timestamptz(3)
+  status        FollowUpStatus @default(pending)
+  note          String?        @db.Text
+  completedAt   DateTime?      @map("completed_at") @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lead          Lead           @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([leadId, status])
+  @@map("follow_ups")
+}
+
+model LeadAssignment {
+  id              String   @id @default(uuid()) @db.Uuid
+  leadId          String   @map("lead_id") @db.Uuid
+  previousAgentId String?  @map("previous_agent_id") @db.Uuid
+  newAgentId      String?  @map("new_agent_id") @db.Uuid
+  assignedBy      String   @map("assigned_by") @db.Uuid
+  assignmentType  String   @default("manual") @map("assignment_type") @db.VarChar(50)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  previousAgent   User?    @relation("PreviousAgent", fields: [previousAgentId], references: [id], onDelete: SetNull)
+  newAgent        User?    @relation("NewAgent", fields: [newAgentId], references: [id], onDelete: SetNull)
+  assigner        User     @relation("AssignedBy", fields: [assignedBy], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+  @@index([assignedBy])
+  @@index([createdAt])
+  @@index([previousAgentId])
+  @@index([newAgentId])
+  @@index([assignmentType])
+  @@map("lead_assignments")
+}
+
+model SecurityLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  leadId    String?  @map("lead_id") @db.Uuid
+  action    String   @db.VarChar(120)
+  ipAddress String?  @map("ip_address") @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  lead      Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([leadId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("security_logs")
+}
+
+model LeadTransfer {
+  id              String   @id @default(uuid()) @db.Uuid
+  leadId          String   @map("lead_id") @db.Uuid
+  previousAgentId String?  @map("previous_agent_id") @db.Uuid
+  newAgentId      String   @map("new_agent_id") @db.Uuid
+  transferredBy   String   @map("transferred_by") @db.Uuid
+  reason          String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  lead            Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  previousAgent   User?    @relation("PreviousTransferAgent", fields: [previousAgentId], references: [id], onDelete: SetNull)
+  newAgent        User     @relation("NewTransferAgent", fields: [newAgentId], references: [id], onDelete: Restrict)
+  transferer      User     @relation("TransferredBy", fields: [transferredBy], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+  @@index([previousAgentId])
+  @@index([newAgentId])
+  @@index([transferredBy])
+  @@index([createdAt])
+  @@map("lead_transfers")
+}
+
+model RoundRobinState {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(80)
+  lastAgentId String?  @map("last_agent_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([lastAgentId])
+  @@map("round_robin_state")
+}
+
+model AssignmentSettings {
+  id               String           @id @default(uuid()) @db.Uuid
+  assignmentMethod AssignmentMethod @default(round_robin) @map("assignment_method")
+  isEnabled        Boolean          @default(true) @map("is_enabled")
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([assignmentMethod])
+  @@map("assignment_settings")
+}
+
+model AgentCapacityHistory {
+  id                String   @id @default(uuid()) @db.Uuid
+  agentId           String   @map("agent_id") @db.Uuid
+  changedBy         String?  @map("changed_by") @db.Uuid
+  type              String   @db.VarChar(80)
+  oldMaxActiveLeads Int?     @map("old_max_active_leads")
+  newMaxActiveLeads Int?     @map("new_max_active_leads")
+  activeLeads       Int?     @map("active_leads")
+  metadata          Json?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  agent             User     @relation("CapacityAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  changer           User?    @relation("CapacityChangedBy", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([agentId])
+  @@index([changedBy])
+  @@index([type])
+  @@index([createdAt])
+  @@map("agent_capacity_history")
+}
+
+model LeadDuplicate {
+  id              String   @id @default(uuid()) @db.Uuid
+  originalLeadId  String   @map("original_lead_id") @db.Uuid
+  duplicateLeadId String   @map("duplicate_lead_id") @db.Uuid
+  detectedBy      String   @map("detected_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  originalLead    Lead     @relation("OriginalLeadDuplicateHistory", fields: [originalLeadId], references: [id], onDelete: Cascade)
+  duplicateLead   Lead     @relation("DuplicateLeadHistory", fields: [duplicateLeadId], references: [id], onDelete: Cascade)
+  detector        User     @relation("DuplicateDetectedBy", fields: [detectedBy], references: [id], onDelete: Restrict)
+
+  @@index([originalLeadId])
+  @@index([duplicateLeadId])
+  @@index([detectedBy])
+  @@index([createdAt])
+  @@map("lead_duplicates")
+}
+
+
+model AuditLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String?  @map("user_id") @db.Uuid
+  action        String   @db.VarChar(80)
+  module        String   @db.VarChar(80)
+  entityType    String   @map("entity_type") @db.VarChar(80)
+  entityId      String?  @map("entity_id") @db.VarChar(120)
+  ipAddress     String?  @map("ip_address") @db.VarChar(80)
+  userAgent     String?  @map("user_agent") @db.Text
+  requestMethod String?  @map("request_method") @db.VarChar(12)
+  endpoint      String?  @db.Text
+  oldValues     Json?    @map("old_values")
+  newValues     Json?    @map("new_values")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+

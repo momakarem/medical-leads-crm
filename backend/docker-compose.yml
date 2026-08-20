@@ -1,0 +1,63 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://medical_crm:medical_crm@postgres:5432/medical_crm?schema=public
+      JWT_SECRET: replace-with-a-long-random-development-secret-at-least-32-characters
+      JWT_EXPIRES_IN: 3600
+      AUTH_COOKIE_NAME: medical_crm_access
+      COOKIE_SECURE: "false"
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173
+      LOG_LEVEL: log
+      SECURITY_ENFORCE_HTTPS: "false"
+      SECURITY_HSTS_MAX_AGE: 15552000
+      META_APP_ID: ""
+      META_APP_SECRET: ""
+      META_REDIRECT_URI: http://localhost:3000/facebook/callback
+      META_WEBHOOK_VERIFY_TOKEN: replace-with-meta-webhook-verify-token
+      META_TOKEN_ENCRYPTION_KEY: replace-with-a-long-random-meta-token-encryption-key
+      TIKTOK_APP_ID: ""
+      TIKTOK_APP_SECRET: ""
+      TIKTOK_REDIRECT_URI: http://localhost:3000/tiktok/callback
+      TIKTOK_TOKEN_ENCRYPTION_KEY: replace-with-a-long-random-tiktok-token-encryption-key
+      TIKTOK_API_BASE_URL: https://business-api.tiktok.com/open_api/v1.3
+      TIKTOK_OAUTH_AUTHORIZE_URL: ""
+      TIKTOK_OAUTH_TOKEN_URL: ""
+      TIKTOK_SCOPES: lead_management,advertiser_management
+      SNAPCHAT_CLIENT_ID: ""
+      SNAPCHAT_CLIENT_SECRET: ""
+      SNAPCHAT_REDIRECT_URI: http://localhost:3000/snapchat/callback
+      SNAPCHAT_TOKEN_ENCRYPTION_KEY: replace-with-a-long-random-snapchat-token-encryption-key
+      SNAPCHAT_API_BASE_URL: https://adsapi.snapchat.com/v1
+      SNAPCHAT_OAUTH_AUTHORIZE_URL: ""
+      SNAPCHAT_OAUTH_TOKEN_URL: ""
+      SNAPCHAT_SCOPES: snapchat-marketing-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: medical_crm
+      POSTGRES_USER: medical_crm
+      POSTGRES_PASSWORD: medical_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - medical_crm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medical_crm -d medical_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  medical_crm_postgres_data:

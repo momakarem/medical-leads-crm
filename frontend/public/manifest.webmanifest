@@ -1,0 +1,16 @@
+{
+  "name": "Medical Leads CRM",
+  "short_name": "Medical CRM",
+  "description": "Enterprise CRM for medical lead management and call center follow-up.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "dir": "auto",
+  "lang": "en",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

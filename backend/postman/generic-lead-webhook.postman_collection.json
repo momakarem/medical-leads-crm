@@ -1,0 +1,39 @@
+{
+  "info": {
+    "name": "Medical Leads CRM - Generic Lead Webhook v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Lead - Valid Payload",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/webhooks/leads",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Mohammed Ahmed\",\n  \"phone\": \"+201012345678\",\n  \"source_channel\": \"Meta\",\n  \"campaign_name\": \"Hair Transplant Campaign\",\n  \"treatment\": \"Hair Transplant\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Create Lead - Missing Phone",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/webhooks/leads",
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Mohammed Ahmed\",\n  \"source_channel\": \"Meta\"\n}" }
+      }
+    },
+    {
+      "name": "Create Lead - Invalid Treatment Still Creates Lead",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/webhooks/leads",
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Invalid Treatment Lead\",\n  \"phone\": \"+201011111111\",\n  \"source_channel\": \"Zapier\",\n  \"treatment\": \"Unknown Treatment\"\n}" }
+      }
+    }
+  ],
+  "variable": [{ "key": "base_url", "value": "http://localhost:3000" }]
+}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Medical Leads CRM">
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <path d="M246 126h20c13 0 24 11 24 24v72h72c13 0 24 11 24 24v20c0 13-11 24-24 24h-72v72c0 13-11 24-24 24h-20c-13 0-24-11-24-24v-72h-72c-13 0-24-11-24-24v-20c0-13 11-24 24-24h72v-72c0-13 11-24 24-24Z" fill="#fff"/>
+  <circle cx="358" cy="154" r="42" fill="#93c5fd"/>
+</svg>

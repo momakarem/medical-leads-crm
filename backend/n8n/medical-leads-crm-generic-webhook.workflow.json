@@ -1,0 +1,133 @@
+{
+  "name": "Medical Leads CRM - Generic Webhook Lead Ingestion",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a0b7f226-0f61-42cb-9f9e-cbca68e3e1f5",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0a5c8302-828b-4d4c-bf96-b85ae14c52aa",
+              "name": "name",
+              "value": "Mohammed Ahmed",
+              "type": "string"
+            },
+            {
+              "id": "3c0c6baf-85ea-45d2-af68-02acbfe22f7a",
+              "name": "phone",
+              "value": "+201012345678",
+              "type": "string"
+            },
+            {
+              "id": "17e1e5cd-0b5a-4b4d-8e26-e652e8290ef5",
+              "name": "source_channel",
+              "value": "n8n Test",
+              "type": "string"
+            },
+            {
+              "id": "f8a84d85-beb5-449e-b298-2b511be6e75c",
+              "name": "campaign_name",
+              "value": "Testing Campaign",
+              "type": "string"
+            },
+            {
+              "id": "d89b34d2-09d9-4e87-8b3c-044f0fb3a9f1",
+              "name": "treatment",
+              "value": "Hair Transplant",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "875a554c-a923-4b87-9bb1-8a41d284d5da",
+      "name": "Set Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_WEBHOOK_URL || 'http://host.docker.internal:3000/webhooks/leads' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "f80ddc8b-dc2f-4a14-8ae0-69106d00645c",
+      "name": "Send to CRM Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Send to CRM Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2c424b67-9e27-4b03-9312-d1f66fc282fb",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "medical-leads-crm-generic-webhook",
+  "tags": [
+    {
+      "name": "Medical Leads CRM"
+    },
+    {
+      "name": "Generic Webhook"
+    }
+  ]
+}
