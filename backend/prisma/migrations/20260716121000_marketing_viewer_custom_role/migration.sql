@@ -1,0 +1,3 @@
+INSERT INTO "custom_roles" ("id", "name", "description", "base_role", "permissions", "is_system") VALUES
+('00000000-0000-0000-0000-0000000000a4', 'Marketing Viewer', 'Read-only marketing and agency reporting access.', 'marketing', '{"Leads":[],"Dashboard":["View"],"Users":[],"Roles":[],"Treatments":[],"Integrations":[],"Reports":["View"],"Audit Logs":[],"Settings":[]}'::jsonb, true)
+ON CONFLICT ("name") DO NOTHING;

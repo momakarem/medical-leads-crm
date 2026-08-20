@@ -1,0 +1,8 @@
+ALTER TABLE "leads"
+  ADD COLUMN IF NOT EXISTS "first_action_at" TIMESTAMPTZ(3),
+  ADD COLUMN IF NOT EXISTS "speed_to_first_action_seconds" INTEGER;
+
+CREATE INDEX IF NOT EXISTS "leads_first_action_at_idx" ON "leads"("first_action_at");
+CREATE INDEX IF NOT EXISTS "leads_speed_to_first_action_seconds_idx" ON "leads"("speed_to_first_action_seconds");
+CREATE INDEX IF NOT EXISTS "leads_owner_agent_id_first_action_at_idx" ON "leads"("owner_agent_id", "first_action_at");
+CREATE INDEX IF NOT EXISTS "leads_owner_agent_id_speed_to_first_action_seconds_idx" ON "leads"("owner_agent_id", "speed_to_first_action_seconds");

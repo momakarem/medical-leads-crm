@@ -27,6 +27,7 @@ Thumbs.db
 db-recovery-*/
 *.dump
 *.sql
+!backend/prisma/migrations/**/migration.sql
 *.tar
 *.tar.gz
 *.zip
@@ -34,4 +35,3 @@ db-recovery-*/
 # Local temporary files
 *.tmp
 *.temp
-
