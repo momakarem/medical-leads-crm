@@ -24,7 +24,7 @@ async function bootstrap(): Promise<void> {
   if (enforceHttps) {
     app.use((request: Request, response: Response, next: NextFunction) => {
       const forwardedProto = request.header('x-forwarded-proto');
-      if (request.secure || forwardedProto === 'https') return next();
+      if (request.path === '/health' || request.secure || forwardedProto === 'https') return next();
       response.status(426).json({ message: 'HTTPS is required for this CRM environment.' });
     });
   }
@@ -44,7 +44,7 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const port = config.getOrThrow<number>('port');
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   Logger.log(`Medical Leads CRM API listening on port ${port}`, 'Bootstrap');
 }
 
