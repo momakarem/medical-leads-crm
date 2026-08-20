@@ -3,7 +3,9 @@ import * as Joi from 'joi';
 export const environmentValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   PORT: Joi.number().port().default(3000),
-  DATABASE_URL: Joi.string().uri({ scheme: ['postgresql', 'postgres'] }).required(),
+  // EasyPanel internal service hosts contain underscores (for example project_service),
+  // which are accepted by PostgreSQL/Prisma but rejected by Joi's generic URI hostname rules.
+  DATABASE_URL: Joi.string().pattern(/^postgres(?:ql)?:\/\/[^\s]+$/).required(),
   JWT_SECRET: Joi.string().min(32).required(),
   JWT_EXPIRES_IN: Joi.number().integer().positive().default(3600),
   AUTH_COOKIE_NAME: Joi.string().default('medical_crm_access'),
