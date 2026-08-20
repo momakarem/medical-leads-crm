@@ -17,9 +17,9 @@ COPY package*.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/health || exit 1
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]
-
+CMD ["sh", "-c", "npx prisma migrate deploy && node scripts/bootstrap-admin.js && node dist/src/main.js"]
